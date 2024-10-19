@@ -43,7 +43,11 @@ import board
 import audiobusio
 import digitalio
 import time
+import busio
+import adafruit_sdcard
+import storage
 
+######################################################################
 #PIN Definitonen
 DOORTSWITCH_PIN = board.GP18
 
@@ -55,29 +59,44 @@ STATUSLED_PIN  = board.GP28
 GAIN100K_PIN   = board.GP13
 GAINVCC_PIN    = board.GP12
 
+SDCARD_SCK_PIN = board.GP10
+SDCARD_MOSI_PIN = board.GP11
+SDCARD_MISO_PIN = board.GP8
+SDCARD_CS_PIN = board.GP9
+
 # Set Gain des Audio Amps, 3, 6, 9, 12 dB
 gain=9
+
+######################################################################
+
+# Moiunt SD Card
+spi = busio.SPI(SDCARD_SCK_PIN, MOSI=SDCARD_MOSI_PIN, MISO=SDCARD_MISO_PIN)
+cs = digitalio.DigitalInOut(SDCARD_CS_PIN)
+
+sdcard = adafruit_sdcard.SDCard(spi, cs)
+vfs = storage.VfsFat(sdcard)
+storage.mount(vfs, "/sd")
 
 
 # Init I2S Audio Verstaerker mit GP0 = BCLK rot, GP1 = LineClock blau, GP2=Data weiss
 audio = audiobusio.I2SOut(board.GP0, board.GP1, board.GP2)
 
-# Define GP13 als Schalter fuer die Schiebetuer, 
+# Define doorswtich als Schalter fuer die Schiebetuer, 
 # Tuer Offen = 1, Tuer Zu = 0
 doorswtich = digitalio.DigitalInOut(DOORTSWITCH_PIN)
 doorswtich.switch_to_input(pull=digitalio.Pull.DOWN)
 
-# Define GP12 als Drucktaster fuer die Fahrstuhltuer, 
+# Define doorbutton als Drucktaster fuer die Fahrstuhltuer, 
 # Schalter Reagiert auf zustandsaenderung ueber doorbuttonLastValue
 doorbutton = digitalio.DigitalInOut(DOORBUTTON_PIN)
 doorbutton.switch_to_input(pull=digitalio.Pull.UP)
 doorbuttonLastValue = 1
 
-# Define GP11 als LED im Drucktaster
+# Define buttonLED als LED im Drucktaster
 buttonLED = digitalio.DigitalInOut(BUTTONLED_PIN)
 buttonLED.switch_to_output()
 
-# Define GP11 als 27 als gruene Debug LED am Kaestchen
+# Define LED1 als gruene Debug LED am Kaestchen
 # zur Zeit implentiert als Power LED
 LED1 = digitalio.DigitalInOut(STATUSLED_PIN)
 LED1.switch_to_output()
@@ -104,10 +123,10 @@ if gain==6:
     gainvdd.value = 1
 
 # Oeffne Musik
-music_file = open("elevator-ziff-loop.wav", "rb")
+music_file = open("/sd/elevator-ziff-loop.wav", "rb")
 music = audiocore.WaveFile(music_file)
 
-bell_file = open("bell.wav", "rb")
+bell_file = open("/sd/bell.wav", "rb")
 bell = audiocore.WaveFile(bell_file)
 
 # Power LED AN
